@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-light: #38bdf8;
+            --surface: #0284c7;
+            --text: #f8fafc;
+            --text-light: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.2);
+            --shadow-strong: rgba(0, 0, 0, 0.3);
+            --message-bg: #f1f5f9;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #1e293b;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 
+                0 8px 16px var(--shadow),
+                0 16px 32px -4px var(--shadow-strong),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        h1 {
+            color: var(--text);
+            margin: 0 0 1.5rem;
+            font-size: 1.8rem;
+        }
+        
+        .mic-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 1.5rem;
+            box-shadow: 
+                0 4px 12px rgba(139, 92, 246, 0.3),
+                0 0 0 4px rgba(139, 92, 246, 0.1),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mic-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .mic-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 
+                0 8px 20px rgba(139, 92, 246, 0.4),
+                0 0 0 6px rgba(139, 92, 246, 0.15),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mic-btn:hover::after {
+            opacity: 1;
+        }
+        
+        .mic-btn.active {
+            background: linear-gradient(135deg, #34d399, #059669);
+            animation: pulseAndRotate 3s infinite;
+        }
+        
+        @keyframes pulseAndRotate {
+            0% { 
+                box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4);
+                transform: rotate(0deg);
+            }
+            50% { 
+                box-shadow: 0 0 0 20px rgba(52, 211, 153, 0);
+                transform: rotate(180deg);
+            }
+            100% { 
+                box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+                transform: rotate(360deg);
+            }
+        }
+        
+        .status {
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            min-height: 24px;
+        }
+        
+        .response {
+            background: #856f6fa9;
+            padding: 1.75rem;
+            border-radius: 1rem;
+            color: #ffffff;
+            line-height: 1.6;
+            text-align: left;
+            min-height: 60px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.05),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .response:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 24px rgba(0, 0, 0, 0.08),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+        
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .retry-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .control-btn {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .history {
+            margin-top: 1.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+        
+        .history-title {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+        
+        .history-item {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.4rem;
+            border-left: 2px solid var(--primary);
+            padding-left: 0.75rem;
+        }
+        
+        .feedback {
+            font-size: 0.85rem;
+            color: #34d399;
+            margin-top: 0.5rem;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Assistant</h1>
+        <button id="micBtn" class="mic-btn" title="Toggle Voice Input">🎤</button>
+        <div id="status" class="status"></div>
+        <div id="response" class="response">
+            Press the microphone button and start speaking
+        </div>
+        <div class="controls">
+            <button id="copyBtn" class="control-btn" title="Copy response">📋 Copy</button>
+            <button id="clearBtn" class="control-btn" title="Clear history">🗑️ Clear</button>
+            <button id="helpBtn" class="control-btn" title="Show commands">❓ Help</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+        <div id="history" class="history" style="display: none;">
+            <div class="history-title">Recent Commands:</div>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        const micBtn = document.getElementById('micBtn');
+        const status = document.getElementById('status');
+        const response = document.getElementById('response');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const helpBtn = document.getElementById('helpBtn');
+        const feedback = document.getElementById('feedback');
+        const history = document.getElementById('history');
+        const historyList = document.getElementById('historyList');
+        
+        let recognition = null;
+        let isListening = false;
+        let commandHistory = JSON.parse(localStorage.getItem('voiceHistory')) || [];
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        function showFeedback(msg, duration = 2000) {
+            feedback.textContent = msg;
+            setTimeout(() => { feedback.textContent = ''; }, duration);
+        }
+        
+        function addToHistory(command) {
+            commandHistory.unshift({ cmd: command, time: new Date().toLocaleTimeString() });
+            commandHistory = commandHistory.slice(0, 10);
+            localStorage.setItem('voiceHistory', JSON.stringify(commandHistory));
+            updateHistoryDisplay();
+        }
+        
+        function updateHistoryDisplay() {
+            historyList.innerHTML = commandHistory
+                .map(item => `<div class="history-item">${item.cmd} <span style="opacity: 0.6;">(${item.time})</span></div>`)
+                .join('');
+        }
+        
+        function copyToClipboard() {
+            const text = response.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showFeedback('✓ Copied to clipboard!');
+            }).catch(() => {
+                showFeedback('✗ Failed to copy');
+            });
+        }
+        
+        function showHelp() {
+            const commands = [
+                '"Hello" or "Hi" - Greeting',
+                '"What\'s the time" - Current time',
+                '"What\'s the date" - Today\'s date',
+                '"Tell me a joke" - Random joke',
+                '"Weather" - Weather info',
+                '"Calculate" + expression - Math',
+                '"Who are you" - About assistant'
+            ];
+            response.innerHTML = '<strong>Available Commands:</strong><br>' + commands.map(c => `• ${c}`).join('<br>');
+            history.style.display = 'block';
+        }
+
+        function handleVoiceInput(transcript) {
+            const text = transcript.toLowerCase();
+            let reply = '';
+            addToHistory(transcript);
+
+            if (text.includes('hello') || text.includes('hi')) {
+                reply = "Hello! How can I help you today?";
+            } else if (text.includes('time')) {
+                reply = `The current time is ${new Date().toLocaleTimeString()}`;
+            } else if (text.includes('date')) {
+                reply = `Today is ${new Date().toLocaleDateString()}`;
+            } else if (text.includes('joke')) {
+                const jokes = [
+                    "Why did the scarecrow win an award? Because he was outstanding in his field!",
+                    "What do you call a bear with no teeth? A gummy bear!",
+                    "Why don't scientists trust atoms? Because they make up everything!",
+                    "What do you call fake spaghetti? An impasta!",
+                    "Why did the math book look sad? Because it had too many problems!",
+                    "What did the ocean say to the beach? Nothing, it just waved!"
+                ];
+                reply = jokes[Math.floor(Math.random() * jokes.length)];
+            } else if (text.includes('who are you')) {
+                reply = "I'm your voice assistant! I can help you with time, dates, jokes, and more. Just speak naturally!";
+            } else if (text.includes('weather')) {
+                reply = "I don't have internet access for real weather data, but you can check your local weather online!";
+            } else if (text.includes('calculate') || text.match(/\d+\s*[+\-*/]\s*\d+/)) {
+                try {
+                    const match = text.match(/(\d+)\s*([+\-*/])\s*(\d+)/);
+                    if (match) {
+                        const [, num1, op, num2] = match;
+                        let result;
+                        switch(op) {
+                            case '+': result = parseInt(num1) + parseInt(num2); break;
+                            case '-': result = parseInt(num1) - parseInt(num2); break;
+                            case '*': result = parseInt(num1) * parseInt(num2); break;
+                            case '/': result = (parseInt(num1) / parseInt(num2)).toFixed(2); break;
+                        }
+                        reply = `${num1} ${op} ${num2} equals ${result}`;
+                    } else {
+                        reply = "I didn't understand the calculation. Please say something like 'ten plus five'.";
+                    }
+                } catch (e) {
+                    reply = "Error in calculation. Please try again.";
+                }
+            } else {
+                reply = `You said: "${transcript}". Try asking for time, date, joke, or say "help" for more commands!`;
+            }
+
+            response.innerHTML = reply;
+            history.style.display = 'block';
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(reply);
+                utterance.rate = 0.95;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleListening() {
+            if (!('webkitSpeechRecognition' in window)) {
+                response.innerHTML = 'Speech recognition is not supported in this browser. Please try Chrome or Edge.';
+                return;
+            }
+
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('active');
+                updateStatus('Listening...');
+                response.textContent = 'I\'m listening...';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                updateStatus('Processing...');
+                handleVoiceInput(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                updateStatus('Error: ' + event.error);
+                if (event.error === 'not-allowed') {
+                    response.innerHTML = 'Please allow microphone access to use the voice assistant.';
+                }
+                stopListening();
+            };
+
+            recognition.onend = () => {
+                stopListening();
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                updateStatus('Failed to start listening');
+                response.innerHTML = 'Error starting voice recognition. Please try again.';
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            micBtn.classList.remove('active');
+            updateStatus('');
+        }
+
+        micBtn.addEventListener('click', toggleListening);
+        copyBtn.addEventListener('click', copyToClipboard);
+        clearBtn.addEventListener('click', () => {
+            commandHistory = [];
+            localStorage.removeItem('voiceHistory');
+            updateHistoryDisplay();
+            showFeedback('✓ History cleared!');
+        });
+        helpBtn.addEventListener('click', showHelp);
+        
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isListening) {
+                e.preventDefault();
+                toggleListening();
+            }
+        });
+        
+        // Initialize
+        updateStatus('Ready to listen');
+        updateHistoryDisplay();
+    </script>
+</body>
+</html>
